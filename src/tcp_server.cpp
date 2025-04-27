@@ -10,7 +10,7 @@ namespace http {
         else log("Starting HTTP server\n");
 
         if(!startListening()) exitWithError("Starting to listen socket failed\n");
-        else log("Starting to listening on port\n");
+        else log("Listening on ADDRESS: %i\nPORT:%i\n", inet_ntoa(socketAddress.sin_addr), ntohs(socketAddress.sin_port));
 
         //if(!acceptConnection()) exitWithError("Starting to accept connections failed\n");
     }
@@ -25,19 +25,34 @@ namespace http {
         long bytesReceived;
         char *msgBuffer;
 
-        // Read until no bytes received or error
-        do {
-            bytesReceived = recv(serverSocket, buffer, strlen(buffer), 0);
-            switch(bytesReceived) {
-                case SOCKET_ERROR:
-                    return false;
-                case 0:
-                    log("No bytes received\n");
-                default:
-                    sprintf(msgBuffer, "Received %i bytes\n", bytesReceived);
-                    log(msgBuffer);
-            }
-        } while(bytesReceived > 0);
+        for(SOCKET &socket : clients) {
+            // Read until no bytes received or error
+            do {
+                bytesReceived = recv(socket, buffer, strlen(buffer), 0);
+                switch(bytesReceived) {
+                    case SOCKET_ERROR:
+                        return false;
+                    case 0:
+                        log("No bytes received\n");
+                    default:
+                        sprintf(msgBuffer, "Received %i bytes\n", bytesReceived);
+                        log(msgBuffer);
+                }
+            } while(bytesReceived > 0);
+        }
+
+        return true;
+    }
+
+    bool TCPServer::acceptConnection(SOCKET &socket) {
+        log("New connection arrived\n");
+        socket = accept(serverSocket, (sockaddr *) &socketAddress, &socketAddresslength);
+        if(socket == INVALID_SOCKET) return false;
+        
+        clients.emplace_back(socket);
+        log("New connection accepted\nSending a response from the server\n");
+        const char *msg = serverResponse();
+        if(send(socket, msg, strlen(msg), 0) == SOCKET_ERROR) return false;
 
         return true;
     }
@@ -47,10 +62,7 @@ namespace http {
 
         long bytesSent;
         if((bytesSent = send(serverSocket, msg, strlen(msg), 0)) == SOCKET_ERROR) return false;
-
-        char *msgBuffer;
-        sprintf(msgBuffer, "Sent %i bytes\n", bytesSent);
-        log(msgBuffer);
+        log("Sent %i bytes\n", bytesSent);
 
         return true;
     }
@@ -83,44 +95,50 @@ namespace http {
     bool TCPServer::stopServer() {
         // Close socket and clean up WSA
         if(closesocket(serverSocket) != 0) return false;
-        
+        for(SOCKET &socket : clients) if(closesocket(socket) != 0) return false;
         if(WSACleanup() == SOCKET_ERROR) return false;
 
         return true;
     }
 
     bool TCPServer::startListening() {
-        printf("Starting listening\n");
+        log("Starting listening\n");
         if(listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) return false;
-        char *msgBuffer;
-        sprintf(msgBuffer, "Listening on ADDRESS: %i\nPORT:%i\n", inet_ntoa(socketAddress.sin_addr), ntohs(socketAddress.sin_port));
-        log(msgBuffer);
 
         return true;
     }
 
-    bool TCPServer::acceptConnection(SOCKET &socket) {
-        printf("Starting to accept connections\n");
-        if(accept(socket, (sockaddr *) &socketAddress, &socketAddresslength) == INVALID_SOCKET) return false;
-        clients.emplace_back(socket);
-        log("Accepting connections to socket\n");
-
-        return true;
+    const char *TCPServer::serverResponse() const {
+        std::string html = "<!DOCTYPE html><html lang=\"en\"><body><h1>HTTP server</h1></body></html>";
+        std::string response = "HTTP/1.1 200 OK\nContent-Type: test/html\nContent-length: ";
+        response += html.length();
+        response += "\n\n";
+        response += html;
+        return response.c_str();
     }
 
-    void TCPServer::log(const char *msg) {
+    void TCPServer::log(const char *format, ...) {
+        if(strlen(format) > BUFFERLEN - 1) return;
+
+        char msg[BUFFERLEN];
+        va_list args;
+
+        va_start(args, format);
+        vsprintf(msg, format, args);
+        va_end(args);
+
         printf("%s\n", msg);
     }
 
     void TCPServer::exitWithError(const char *msg) {
-        std::string errMsg = "ERROR: ";
+        /*std::string errMsg = "ERROR: ";
         errMsg += msg;
         if(errMsg[errMsg.size() - 1] != '\n') errMsg += "\n";
         errMsg += "CODE: ";
-        errMsg += WSAGetLastError();
+        errMsg += WSAGetLastError();*/
         
-        log(errMsg.c_str());
-        exit(0);
+        log("ERROR: %s\nCODE: %i\n", msg, WSAGetLastError());
+        exit(1);
     }
 
 }

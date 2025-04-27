@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <WinSock2.h>
+#include <stdarg.h>
 
 namespace http {
 
@@ -16,6 +17,7 @@ namespace http {
 
         // Read from server and send data to server
         bool readServer();
+        bool acceptConnection(SOCKET &socket);
         bool sendToServer(const char *msg);
     private:
         const char *ip;
@@ -34,10 +36,10 @@ namespace http {
         bool startServer();
         bool stopServer();
         bool startListening();
-        bool acceptConnection(SOCKET &socket);
+        const char *serverResponse() const;
 
         // Log functions
-        void log(const char *msg);
+        void log(const char *format, ...);
         void exitWithError(const char *msg);
     };
     
