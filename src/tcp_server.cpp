@@ -35,8 +35,7 @@ namespace http {
                     case 0:
                         log("No bytes received\n");
                     default:
-                        sprintf(msgBuffer, "Received %i bytes\n", bytesReceived);
-                        log(msgBuffer);
+                        log("Received %i bytes\nReceived data: %s\n", bytesReceived, buffer);
                 }
             } while(bytesReceived > 0);
         }
@@ -65,6 +64,30 @@ namespace http {
         log("Sent %i bytes\n", bytesSent);
 
         return true;
+    }
+
+    void TCPServer::log(const char *format, ...) {
+        if(strlen(format) > BUFFERLEN - 1) return;
+
+        char msg[BUFFERLEN];
+        va_list args;
+
+        va_start(args, format);
+        vsprintf(msg, format, args);
+        va_end(args);
+
+        printf("%s\n", msg);
+    }
+
+    void TCPServer::exitWithError(const char *msg) {
+        /*std::string errMsg = "ERROR: ";
+        errMsg += msg;
+        if(errMsg[errMsg.size() - 1] != '\n') errMsg += "\n";
+        errMsg += "CODE: ";
+        errMsg += WSAGetLastError();*/
+        
+        log("ERROR: %s\nCODE: %i\n", msg, WSAGetLastError());
+        exit(1);
     }
 
     bool TCPServer::startServer() {
@@ -110,35 +133,11 @@ namespace http {
 
     const char *TCPServer::serverResponse() const {
         std::string html = "<!DOCTYPE html><html lang=\"en\"><body><h1>HTTP server</h1></body></html>";
-        std::string response = "HTTP/1.1 200 OK\nContent-Type: test/html\nContent-length: ";
+        std::string response = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-length: ";
         response += html.length();
         response += "\n\n";
         response += html;
         return response.c_str();
-    }
-
-    void TCPServer::log(const char *format, ...) {
-        if(strlen(format) > BUFFERLEN - 1) return;
-
-        char msg[BUFFERLEN];
-        va_list args;
-
-        va_start(args, format);
-        vsprintf(msg, format, args);
-        va_end(args);
-
-        printf("%s\n", msg);
-    }
-
-    void TCPServer::exitWithError(const char *msg) {
-        /*std::string errMsg = "ERROR: ";
-        errMsg += msg;
-        if(errMsg[errMsg.size() - 1] != '\n') errMsg += "\n";
-        errMsg += "CODE: ";
-        errMsg += WSAGetLastError();*/
-        
-        log("ERROR: %s\nCODE: %i\n", msg, WSAGetLastError());
-        exit(1);
     }
 
 }

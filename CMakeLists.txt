@@ -12,7 +12,6 @@ add_compile_options(
     -Wno-unused-function
     -Wno-maybe-uninitialized
     -fpermissive
-    -lws2_32
 )
 
 file(GLOB sources main.cpp src/*cpp)
@@ -22,4 +21,4 @@ add_executable(${ProjectName}
 
 target_include_directories(${ProjectName} PRIVATE inc)
 
-#target_link_libraries(${ProjectName} )
+target_link_libraries(${ProjectName} lws2_32)

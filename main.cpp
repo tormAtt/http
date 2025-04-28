@@ -5,6 +5,9 @@ int main() {
     http::TCPServer server = http::TCPServer("127.0.0.1", 8080);
     SOCKET socket;
     server.acceptConnection(socket);
-    while(true) server.readServer();
+    
+    while(true)
+        if(!server.readServer()) printf("Failed to read server\n");
+
     return 0;
 }

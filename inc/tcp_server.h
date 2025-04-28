@@ -19,6 +19,10 @@ namespace http {
         bool readServer();
         bool acceptConnection(SOCKET &socket);
         bool sendToServer(const char *msg);
+
+        // Log functions
+        void log(const char *format, ...);
+        void exitWithError(const char *msg);
     private:
         const char *ip;
         const uint16_t port;
@@ -37,10 +41,6 @@ namespace http {
         bool stopServer();
         bool startListening();
         const char *serverResponse() const;
-
-        // Log functions
-        void log(const char *format, ...);
-        void exitWithError(const char *msg);
     };
     
 }
